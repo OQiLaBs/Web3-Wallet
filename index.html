@@ -3,138 +3,512 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web3 Wallet</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+    <title>MetaMask Wallet</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body {
-            background-color: #f8f9fa;
-        }
-        .header {
-            background-color: #343a40;
-            color: white;
-            padding: 20px 0;
-            text-align: center;
-        }
-        .container {
-            margin-top: 20px;
-        }
         .qr-code {
-            margin-top: 20px;
-            text-align: center;
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 10px;
         }
-        .btn-custom {
-            background-color: #007bff;
-            color: white;
+        .wallet-address {
+            font-family: monospace;
+            font-size: 0.9rem;
+            word-break: break-all;
         }
-        .btn-custom:hover {
-            background-color: #0056b3;
+        .token-balance-card {
+            margin-bottom: 20px;
+        }
+        #loginSection {
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        #dashboard {
+            display: none;
         }
     </style>
 </head>
 <body>
-
     <!-- Header -->
-    <header class="header">
-        <h1>Web3 Wallet</h1>
-        <button id="connectButton" class="btn btn-custom">Connect Wallet</button>
-        <button id="logoutButton" class="btn btn-danger" style="display: none;">Logout</button>
-    </header>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#" id="walletName">MetaMask Wallet</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <span class="nav-link wallet-address" id="walletAddress">Not connected</span>
+                    </li>
+                </ul>
+                <div class="d-flex">
+                    <button class="btn btn-outline-light me-2" id="connectButton">Connect Wallet</button>
+                    <button class="btn btn-danger" id="logoutButton" style="display: none;">Logout</button>
+                </div>
+            </div>
+        </div>
+    </nav>
 
-    <!-- Main Content -->
-    <div class="container">
-        <div id="dashboard" style="display: none;">
-            <h3>Dashboard</h3>
-            <p><strong>Wallet Address:</strong> <span id="walletAddress"></span></p>
-            <p><strong>Balance:</strong> <span id="walletBalance">0</span> ETH</p>
+    <!-- Login Section (shown when not connected) -->
+    <div class="container" id="loginSection">
+        <div class="text-center mb-4">
+            <img src="https://metamask.io/images/metamask-logo.png" alt="MetaMask" style="height: 100px;">
+            <h1 class="h3 mb-3 font-weight-normal">Connect Your Wallet</h1>
+            <p>Please connect your MetaMask wallet to access your dashboard.</p>
+        </div>
+        <button class="btn btn-lg btn-primary w-100" id="loginButton">
+            <i class="fab fa-ethereum me-2"></i> Login with MetaMask
+        </button>
+    </div>
 
-            <!-- Send Button -->
-            <button class="btn btn-custom" id="sendButton">Send</button>
+    <!-- Dashboard (shown when connected) -->
+    <div class="container mt-4" id="dashboard">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Wallet Balance</h5>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="card-title" id="ethBalance">0 ETH</h3>
+                        <div id="tokenBalances"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-            <!-- Receive QR Code -->
-            <div class="qr-code">
-                <h4>Receive</h4>
-                <img id="qrCode" src="" alt="QR Code" style="width: 150px; height: 150px;">
+        <div class="row">
+            <!-- Add Custom Token -->
+            <div class="col-md-6">
+                <div class="card token-balance-card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Add Custom Token</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="tokenAddress" class="form-label">Token Contract Address</label>
+                            <input type="text" class="form-control" id="tokenAddress" placeholder="0x...">
+                        </div>
+                        <div class="mb-3">
+                            <label for="tokenSymbol" class="form-label">Token Symbol</label>
+                            <input type="text" class="form-control" id="tokenSymbol" placeholder="e.g., USDT">
+                        </div>
+                        <div class="mb-3">
+                            <label for="tokenDecimals" class="form-label">Token Decimals</label>
+                            <input type="number" class="form-control" id="tokenDecimals" placeholder="18" value="18">
+                        </div>
+                        <button class="btn btn-success w-100" id="addTokenBtn">Add Token</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mine Token (for testnets) -->
+            <div class="col-md-6">
+                <div class="card token-balance-card">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">Mine Test Tokens</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">Request test ETH from faucet (only works on testnets).</p>
+                        <button class="btn btn-warning w-100" id="mineTokenBtn">Mine Test ETH</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <!-- Send Token -->
+            <div class="col-md-6">
+                <div class="card token-balance-card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">Send Token</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="sendTokenSelect" class="form-label">Select Token</label>
+                            <select class="form-select" id="sendTokenSelect">
+                                <option value="ETH">ETH</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="recipientAddress" class="form-label">Recipient Address</label>
+                            <input type="text" class="form-control" id="recipientAddress" placeholder="0x...">
+                        </div>
+                        <div class="mb-3">
+                            <label for="sendAmount" class="form-label">Amount</label>
+                            <input type="text" class="form-control" id="sendAmount" placeholder="0.1">
+                        </div>
+                        <button class="btn btn-info w-100" id="sendTokenBtn">Send</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Deposit (Show QR Code) -->
+            <div class="col-md-6">
+                <div class="card token-balance-card">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0">Deposit</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <p>Scan this QR code to deposit funds to your wallet</p>
+                        <div class="qr-code" id="qrCode">
+                            <!-- QR code will be generated here -->
+                        </div>
+                        <p class="mt-2 wallet-address" id="depositAddress">Connect wallet to see address</p>
+                        <button class="btn btn-secondary mt-2" id="copyAddressBtn">Copy Address</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script>
-        let web3;
-        let userAddress;
-        let userBalance;
+    <!-- Footer -->
+    <footer class="footer mt-5 py-3 bg-light">
+        <div class="container">
+            <div class="text-center">
+                <span class="text-muted">© 2023 Crypto Wallet Inc. All rights reserved.</span>
+            </div>
+        </div>
+    </footer>
 
-        // Connect wallet
-        async function connectWallet() {
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- QR Code Library -->
+    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
+    <!-- Web3.js for Ethereum interaction -->
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.5.2/dist/web3.min.js"></script>
+
+    <script>
+        // Global variables
+        let web3;
+        let accounts = [];
+        let tokens = []; // Store added tokens
+        
+        // DOM elements
+        const loginSection = document.getElementById('loginSection');
+        const dashboard = document.getElementById('dashboard');
+        const loginButton = document.getElementById('loginButton');
+        const connectButton = document.getElementById('connectButton');
+        const logoutButton = document.getElementById('logoutButton');
+        const walletAddress = document.getElementById('walletAddress');
+        const ethBalance = document.getElementById('ethBalance');
+        const tokenBalances = document.getElementById('tokenBalances');
+        const addTokenBtn = document.getElementById('addTokenBtn');
+        const mineTokenBtn = document.getElementById('mineTokenBtn');
+        const sendTokenBtn = document.getElementById('sendTokenBtn');
+        const copyAddressBtn = document.getElementById('copyAddressBtn');
+        const depositAddress = document.getElementById('depositAddress');
+        const qrCode = document.getElementById('qrCode');
+        const sendTokenSelect = document.getElementById('sendTokenSelect');
+
+        // Initialize the app
+        window.addEventListener('load', async () => {
+            // Check if MetaMask is installed
             if (window.ethereum) {
                 web3 = new Web3(window.ethereum);
+                
                 try {
-                    const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-                    userAddress = accounts[0];
-                    document.getElementById("walletAddress").textContent = userAddress;
-
-                    // Update balance
-                    const balance = await web3.eth.getBalance(userAddress);
-                    userBalance = web3.utils.fromWei(balance, 'ether');
-                    document.getElementById("walletBalance").textContent = userBalance;
-
-                    // Show dashboard
-                    document.getElementById("dashboard").style.display = "block";
-                    document.getElementById("connectButton").style.display = "none";
-                    document.getElementById("logoutButton").style.display = "inline-block";
-
-                    // Generate QR code for receiving ETH
-                    generateQRCode(userAddress);
+                    // Check if already connected
+                    accounts = await web3.eth.getAccounts();
+                    if (accounts.length > 0) {
+                        connectWallet(accounts[0]);
+                    }
                 } catch (error) {
-                    console.error("User denied account access");
+                    console.error("Error connecting to MetaMask:", error);
                 }
             } else {
-                alert("Please install MetaMask!");
-            }
-        }
-
-        // Logout wallet
-        function logoutWallet() {
-            userAddress = null;
-            userBalance = 0;
-            document.getElementById("walletBalance").textContent = userBalance;
-            document.getElementById("walletAddress").textContent = "Not connected";
-
-            // Hide dashboard and show connect button
-            document.getElementById("dashboard").style.display = "none";
-            document.getElementById("connectButton").style.display = "inline-block";
-            document.getElementById("logoutButton").style.display = "none";
-        }
-
-        // Generate QR code for the wallet address
-        function generateQRCode(address) {
-            QRCode.toDataURL(address, function (err, url) {
-                if (err) {
-                    console.error("Error generating QR code", err);
-                } else {
-                    document.getElementById("qrCode").src = url;
-                }
-            });
-        }
-
-        // Event listeners for buttons
-        document.getElementById("connectButton").addEventListener("click", connectWallet);
-        document.getElementById("logoutButton").addEventListener("click", logoutWallet);
-
-        // Optional: Handling Ethereum network changes
-        ethereum.on('accountsChanged', function (accounts) {
-            if (accounts.length > 0) {
-                userAddress = accounts[0];
-                document.getElementById("walletAddress").textContent = userAddress;
-                web3.eth.getBalance(userAddress).then(balance => {
-                    userBalance = web3.utils.fromWei(balance, 'ether');
-                    document.getElementById("walletBalance").textContent = userBalance;
-                });
+                alert('Please install MetaMask to use this wallet!');
             }
         });
-    </script>
 
+        // Event listeners
+        loginButton.addEventListener('click', loginWithMetaMask);
+        connectButton.addEventListener('click', loginWithMetaMask);
+        logoutButton.addEventListener('click', logout);
+        addTokenBtn.addEventListener('click', addCustomToken);
+        mineTokenBtn.addEventListener('click', mineTestTokens);
+        sendTokenBtn.addEventListener('click', sendTokens);
+        copyAddressBtn.addEventListener('click', copyAddressToClipboard);
+
+        // Functions
+        async function loginWithMetaMask() {
+            if (!window.ethereum) {
+                alert('MetaMask is not installed!');
+                return;
+            }
+
+            try {
+                // Request account access
+                accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                connectWallet(accounts[0]);
+                
+                // Set up event listener for account changes
+                window.ethereum.on('accountsChanged', (newAccounts) => {
+                    if (newAccounts.length === 0) {
+                        logout();
+                    } else {
+                        connectWallet(newAccounts[0]);
+                    }
+                });
+                
+                // Set up event listener for chain changes
+                window.ethereum.on('chainChanged', () => {
+                    window.location.reload();
+                });
+            } catch (error) {
+                console.error("User denied account access:", error);
+            }
+        }
+
+        function connectWallet(account) {
+            // Update UI
+            walletAddress.textContent = account;
+            depositAddress.textContent = account;
+            
+            // Generate QR code
+            new QRCode(qrCode, {
+                text: account,
+                width: 180,
+                height: 180,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+            
+            // Show dashboard and hide login section
+            loginSection.style.display = 'none';
+            dashboard.style.display = 'block';
+            connectButton.style.display = 'none';
+            logoutButton.style.display = 'block';
+            
+            // Load balances
+            loadBalances();
+        }
+
+        function logout() {
+            // Reset UI
+            walletAddress.textContent = 'Not connected';
+            loginSection.style.display = 'block';
+            dashboard.style.display = 'none';
+            connectButton.style.display = 'block';
+            logoutButton.style.display = 'none';
+            
+            // Clear QR code
+            qrCode.innerHTML = '';
+            depositAddress.textContent = 'Connect wallet to see address';
+            
+            // Reset state
+            accounts = [];
+        }
+
+        async function loadBalances() {
+            if (!accounts.length) return;
+            
+            // Load ETH balance
+            const balance = await web3.eth.getBalance(accounts[0]);
+            const ethBalanceFormatted = web3.utils.fromWei(balance, 'ether');
+            ethBalance.textContent = `${parseFloat(ethBalanceFormatted).toFixed(4)} ETH`;
+            
+            // Load token balances
+            tokenBalances.innerHTML = '';
+            
+            for (const token of tokens) {
+                const balance = await getTokenBalance(token.address, accounts[0]);
+                const formattedBalance = balance / (10 ** token.decimals);
+                
+                const balanceElement = document.createElement('div');
+                balanceElement.className = 'mt-2';
+                balanceElement.innerHTML = `<strong>${token.symbol}:</strong> ${formattedBalance.toFixed(4)}`;
+                tokenBalances.appendChild(balanceElement);
+            }
+        }
+
+        async function getTokenBalance(tokenAddress, userAddress) {
+            // ERC20 ABI - just the balanceOf function
+            const minABI = [
+                {
+                    "constant": true,
+                    "inputs": [{"name": "_owner", "type": "address"}],
+                    "name": "balanceOf",
+                    "outputs": [{"name": "balance", "type": "uint256"}],
+                    "type": "function"
+                }
+            ];
+            
+            const contract = new web3.eth.Contract(minABI, tokenAddress);
+            try {
+                const balance = await contract.methods.balanceOf(userAddress).call();
+                return balance;
+            } catch (error) {
+                console.error(`Error getting balance for token ${tokenAddress}:`, error);
+                return 0;
+            }
+        }
+
+        async function addCustomToken() {
+            const tokenAddress = document.getElementById('tokenAddress').value;
+            const tokenSymbol = document.getElementById('tokenSymbol').value;
+            const tokenDecimals = parseInt(document.getElementById('tokenDecimals').value);
+            
+            if (!tokenAddress || !tokenSymbol || isNaN(tokenDecimals)) {
+                alert('Please fill all fields correctly');
+                return;
+            }
+            
+            // Check if token already exists
+            if (tokens.some(t => t.address.toLowerCase() === tokenAddress.toLowerCase())) {
+                alert('This token is already added');
+                return;
+            }
+            
+            try {
+                // Try to get balance to verify token address
+                const balance = await getTokenBalance(tokenAddress, accounts[0]);
+                
+                // Add to tokens list
+                tokens.push({
+                    address: tokenAddress,
+                    symbol: tokenSymbol,
+                    decimals: tokenDecimals
+                });
+                
+                // Update token select for sending
+                updateTokenSelect();
+                
+                // Reload balances
+                loadBalances();
+                
+                // Clear form
+                document.getElementById('tokenAddress').value = '';
+                document.getElementById('tokenSymbol').value = '';
+                
+                alert('Token added successfully!');
+            } catch (error) {
+                console.error('Error adding token:', error);
+                alert('Failed to add token. Please check the address and try again.');
+            }
+        }
+
+        function updateTokenSelect() {
+            sendTokenSelect.innerHTML = '<option value="ETH">ETH</option>';
+            
+            for (const token of tokens) {
+                const option = document.createElement('option');
+                option.value = token.address;
+                option.textContent = token.symbol;
+                sendTokenSelect.appendChild(option);
+            }
+        }
+
+        async function mineTestTokens() {
+            if (!accounts.length) return;
+            
+            try {
+                // This only works on testnets with faucets (like Rinkeby, Ropsten, etc.)
+                const response = await fetch(`https://faucet.metamask.io/send`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        address: accounts[0]
+                    })
+                });
+                
+                const result = await response.text();
+                
+                if (response.ok) {
+                    alert('Test ETH requested successfully. It may take a few minutes to arrive.');
+                    // Wait a bit and refresh balance
+                    setTimeout(loadBalances, 10000);
+                } else {
+                    alert(`Error: ${result}`);
+                }
+            } catch (error) {
+                console.error('Error mining test tokens:', error);
+                alert('Failed to request test ETH. Make sure you are on a test network.');
+            }
+        }
+
+        async function sendTokens() {
+            if (!accounts.length) return;
+            
+            const recipient = document.getElementById('recipientAddress').value;
+            const amount = document.getElementById('sendAmount').value;
+            const tokenAddress = sendTokenSelect.value;
+            
+            if (!web3.utils.isAddress(recipient)) {
+                alert('Please enter a valid recipient address');
+                return;
+            }
+            
+            if (isNaN(amount) || parseFloat(amount) <= 0) {
+                alert('Please enter a valid amount');
+                return;
+            }
+            
+            try {
+                if (tokenAddress === 'ETH') {
+                    // Send ETH
+                    const weiAmount = web3.utils.toWei(amount, 'ether');
+                    await web3.eth.sendTransaction({
+                        from: accounts[0],
+                        to: recipient,
+                        value: weiAmount
+                    });
+                } else {
+                    // Send ERC20 token
+                    const token = tokens.find(t => t.address === tokenAddress);
+                    if (!token) {
+                        alert('Token not found');
+                        return;
+                    }
+                    
+                    const tokenAmount = BigInt(Math.floor(amount * (10 ** token.decimals)));
+                    
+                    // ERC20 ABI - just the transfer function
+                    const minABI = [
+                        {
+                            "constant": false,
+                            "inputs": [
+                                {"name": "_to", "type": "address"},
+                                {"name": "_value", "type": "uint256"}
+                            ],
+                            "name": "transfer",
+                            "outputs": [{"name": "", "type": "bool"}],
+                            "type": "function"
+                        }
+                    ];
+                    
+                    const contract = new web3.eth.Contract(minABI, tokenAddress);
+                    await contract.methods.transfer(recipient, tokenAmount.toString()).send({ from: accounts[0] });
+                }
+                
+                alert('Transaction sent successfully!');
+                // Refresh balances
+                loadBalances();
+            } catch (error) {
+                console.error('Error sending tokens:', error);
+                alert('Transaction failed: ' + (error.message || 'Unknown error'));
+            }
+        }
+
+        function copyAddressToClipboard() {
+            if (!accounts.length) return;
+            
+            navigator.clipboard.writeText(accounts[0])
+                .then(() => alert('Address copied to clipboard!'))
+                .catch(err => console.error('Failed to copy address:', err));
+        }
+    </script>
 </body>
 </html>
